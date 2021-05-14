@@ -1,5 +1,7 @@
 # IAGLR 2021 H2O Workshop
 
+Conference Link: http://iaglr.org/iaglr2021/program/workshops/
+
 ## Key Files
 
 - `setup.R`: install packages required
