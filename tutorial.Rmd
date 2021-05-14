@@ -1,5 +1,5 @@
 ---
-title: "IAGLR 2021 H2O Workshop (bit.ly/xxxxxxxxxx)"
+title: "IAGLR 2021 H2O Workshop"
 date: "`r Sys.Date()`"
 output:
   rmdformats::readthedown:
@@ -32,22 +32,29 @@ opts_knit$set(width=75)
 
 # Agenda
 
-- 09:00 to 09:30 Set Up & Introduction
-- 09:30 to 10:30 Regression Example
-- 10:30 to 11:00 Coffee Break
-- 11:00 to 11:30 Classification Example
-- 11:30 to 12:30 Bring Your Own Data + Q&A
+- Welcomes and introductions – Timothy Maguire (UMich CIGLR) and Jo-fai Chow (H2O.ai) (5 mins)
+- Great Lakes research questions driven by data – Timothy Maguire (15 mins)
+- Introduction to the H2O.ai software – Jo-fai Chow (5 mins)
+- Live-code example of data manipulation and machine learning analysis –  Jo-Fai Chow (20 mins)
+- Results in context – Timothy Maguire (10 mins)
+- Q&A (5 mins)
 
 
-# Set Up
 
-## Download -> bit.ly/useR2019_h2o_tutorial
+
+# Introduction to H2O
+
+(Joe's screenshots here)
+
+
+# Software and Code
+
+## Code
 
 - `setup.R`: install packages required
 - `tutorial.Rmd`: the main RMarkdown file with code 
 - `tutorial.html`: this webpage
 - **GitHub Repo** https://github.com/woobe/IAGLR_2021_H2O_Workshop
-
 
 ## R Packages
 
@@ -58,13 +65,6 @@ opts_knit$set(width=75)
     - `knitr` for rendering this RMarkdown
     - `rmdformats` for `readthedown` RMarkdown template
     - `DT` for nice tables
-
-
-# Introduction
-
-General Data Protection Regulation (GDPR) is now in place. Are you ready to explain your models? This is a hands-on tutorial for R beginners. I will demonstrate the use of H2O and other R packages for automatic and interpretable machine learning. Participants will be able to follow and build regression and classification models quickly with H2O's AutoML. They will then be able to explain the model outcomes with various methods.
-
-It is a workshop for R beginners and anyone interested in machine learning. RMarkdown and the rendered HTML will be provided so everyone can follow without running the code.
 
 
 # H2O Basics
@@ -142,7 +142,7 @@ print(features)
 ## Split Data into Train/Test
 
 ```{r}
-h_split <- h2o.splitFrame(lake_data, ratios = 0.8, seed = n_seed)
+h_split <- h2o.splitFrame(lake_data, ratios = 0.75, seed = n_seed)
 h_train <- h_split[[1]] # 80% for modelling
 h_test <- h_split[[2]] # 20% for evaluation
 ```
@@ -159,9 +159,9 @@ dim(h_test)
 </center>
 
 
-# Regression Example - Target "DPOL"
+# Worked Example - Target "DPOL"
 
-### Baseline Models
+## Baseline Models
 
 - `h2o.glm()`: H2O Generalized Linear Model
 - `h2o.randomForest()`: H2O Random Forest Model
@@ -175,7 +175,6 @@ Let's start with GBM
 model_gbm_DPOL <- h2o.gbm(x = features,               # All 13 features
                               y = target_DPOL,            # medv (median value of owner-occupied homes in $1000s)
                               training_frame = h_train,   # H2O dataframe with training data
-                              model_id = "baseline_gbm",  # Give the model a name
                               nfolds = 5,                 # Using 5-fold CV
                               seed = n_seed)              # Your lucky seed
 ```
@@ -198,7 +197,7 @@ Let's use RMSE
 </center>
 
 
-### Build Other Baseline Models (GLM, DRF, GBM, DNN) - TRY IT YOURSELF!
+Build Other Baseline Models (GLM, DRF, GBM, DNN) - TRY IT YOURSELF!
 
 ```{r eval=FALSE}
 # Try other H2O models
@@ -228,14 +227,13 @@ Let's use RMSE
 model_gbm_DPOL_m <- h2o.gbm(x = features, 
                                 y = target_DPOL, 
                                 training_frame = h_train,
-                                model_id = "model_gbm_m", 
                                 nfolds = 5,
                                 seed = n_seed,
                                 # Manual Settings based on experience
                                 learn_rate = 0.1,       # use a lower rate (more conservative)
-                                ntrees = 100,           # use more trees (due to lower learn_rate)
-                                sample_rate = 0.9,     # use random n% of samples for each tree  
-                                col_sample_rate = 0.9) # use random n% of features for each tree
+                                ntrees = 120,           # use more trees (due to lower learn_rate)
+                                sample_rate = 0.7,      # use random n% of samples for each tree  
+                                col_sample_rate = 0.7)  # use random n% of features for each tree
 ```
 
 ### Comparison (RMSE: Lower = Better)
@@ -248,39 +246,16 @@ d_eval <- data.frame(model = c("GBM: Gradient Boosting Model (Baseline)",
                      stringsAsFactors = FALSE)
 d_eval$RMSE_cv <- NA
 d_eval$RMSE_test <- NA
-```
 
-```{r}
 # Store RMSE values
 d_eval[1, ]$RMSE_cv <- model_gbm_DPOL@model$cross_validation_metrics@metrics$RMSE
 d_eval[2, ]$RMSE_cv <- model_gbm_DPOL_m@model$cross_validation_metrics@metrics$RMSE
-
 d_eval[1, ]$RMSE_test <- h2o.rmse(h2o.performance(model_gbm_DPOL, newdata = h_test))
 d_eval[2, ]$RMSE_test <- h2o.rmse(h2o.performance(model_gbm_DPOL_m, newdata = h_test))
-```
 
-```{r}
 # Show Comparison (RMSE: Lower = Better)
 datatable(d_eval, rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE, round)) %>%
   formatRound(columns = -1, digits = 4)
-```
-
-
-## Hierarchical GLM (HGLM) with Random Effects 
-
-```{r, eval=FALSE}
-# Not working yet ...
-# model_hglm_DPOL <- h2o.glm(x = features,
-#                            y = target_DPOL,
-#                            training_frame = h_train,
-#                            model_id = "model_hglm", 
-#                            seed = n_seed,
-#                            family = "gaussian",
-#                            rand_family = c("gaussian"),
-#                            rand_link = c("identity"),
-#                            HGLM = TRUE,
-#                            random_columns = "Year",
-#                            calc_like = TRUE)
 ```
 
 
@@ -292,10 +267,10 @@ datatable(d_eval, rownames = FALSE, options = list(pageLength = 10, scrollX = TR
 automl_DPOL = h2o.automl(x = features,
                          y = target_DPOL,
                          training_frame = h_train,
-                         nfolds = 5,                     # 5-fold Cross-Validation
-                         max_models = 20,                # Max number of models
-                         stopping_metric = "RMSE",       # Metric to optimize
-                         project_name = "automl_DPOL", # Specify a name so you can add more models later
+                         nfolds = 5,                        # 5-fold Cross-Validation
+                         max_models = 30,                   # Max number of models
+                         stopping_metric = "RMSE",          # Metric to optimize
+                         exclude_algos = c("deeplearning", "xgboost"), # exclude some alogs for a quick demo
                          seed = n_seed)
 ```
 
@@ -331,7 +306,7 @@ datatable(d_eval, rownames = FALSE, options = list(pageLength = 10, scrollX = TR
 
 ```{r}
 yhat_test <- h2o.predict(automl_DPOL@leader, newdata = h_test)
-head(yhat_test)
+head(yhat_test, 5)
 ```
 
 
@@ -340,22 +315,26 @@ head(yhat_test)
 ### Global Explanations
 
 ```{r}
-# Explain Manually Tuned GBM
-h2o.explain(model_gbm_DPOL_m, newdata = h_test)
+# Explain Best Model from AutoML
+h2o.explain(automl_DPOL@leader, newdata = h_test)
 ```
 
 
 ### Local Explanations
 
+```{r}
+h2o.explain_row(automl_DPOL@leader, newdata = h_test, row_index = 1)
+```
+
 ### Local Contributions (for Tree-based Models)
 
 ```{r}
-predictions <- h2o.predict(model_gbm_DPOL_m, newdata = h_test)
+predictions <- h2o.predict(automl_DPOL@leader, newdata = h_test)
 as.data.frame(head(predictions, 5))
 ```
 
 ```{r}
-contributions <- h2o.predict_contributions(model_gbm_DPOL_m, newdata = h_test)
+contributions <- h2o.predict_contributions(automl_DPOL@leader, newdata = h_test)
 
 datatable(as.data.frame(head(contributions)), rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE, round)) %>%
   formatRound(columns = -1, digits = 4)
@@ -363,11 +342,12 @@ datatable(as.data.frame(head(contributions)), rownames = FALSE, options = list(p
 
 
 
-# Regression Example - Target "DBUG"
-
-T.B.A.
-
-# Bring Your Own Data + Q&A
+# Your Turn - Target "DBUG"
 
 Get your hands dirty!
+
+
+# Q & A
+
+
 
