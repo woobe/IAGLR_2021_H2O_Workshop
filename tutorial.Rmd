@@ -40,9 +40,47 @@ opts_knit$set(width=75)
 - Q&A (5 mins)
 
 
+# Welcome
+
+<center>
+![welcome](img/IAGLR Slides_01.jpg)
+</center>
+
+
+
+# About Great Lakes Research
+
+
+<center>
+![slide_02](img/IAGLR Slides_02.jpg)
+
+![slide_03](img/IAGLR Slides_03.jpg)
+
+![slide_04](img/IAGLR Slides_04.jpg)
+
+![slide_05](img/IAGLR Slides_05.jpg)
+
+![slide_06](img/IAGLR Slides_06.jpg)
+
+
+</center>
+
 # Introduction to H2O
 
-TBA
+<center>
+
+![h2o](img/about_h2o_001.png)
+
+![h2o](img/about_h2o_002.png)
+
+![h2o](img/about_h2o_003.png)
+
+![h2o](img/about_h2o_004.png)
+
+![h2o](img/about_h2o_005.png)
+
+
+</center>
 
 
 # Software and Code
@@ -79,6 +117,7 @@ h2o.init()
 ```
 
 ```{r}
+# Optional settings
 h2o.no_progress() # disable progress bar for RMarkdown
 h2o.removeAll()   # Optional: remove anything from previous session 
 ```
@@ -94,12 +133,13 @@ n_seed <- 12345
 # Data - Dom Lake Huron Abund
 
 ```{r}
+# Import CSV from GitHub
 lake_data <- h2o.importFile('https://raw.githubusercontent.com/woobe/IAGLR_2021_H2O_Workshop/main/data/Dom_Lake_Huron_Abund.csv')
 ```
 
 ```{r}
-datatable(as.data.frame(head(lake_data)), rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE, round)) %>%
-  formatRound(columns = -1, digits = 4)
+# Show first few samples
+kable(head(lake_data, 5))
 ```
 
 
@@ -123,6 +163,7 @@ h2o.hist(lake_data$DBUG, breaks = 100)
 ## Define Target and Features
 
 ```{r}
+# Define targets
 target_DPOL <- "DPOL"
 target_DBUG <- "DBUG"
 
@@ -159,7 +200,7 @@ dim(h_test)
 
 # Worked Example - Target "DPOL"
 
-## Baseline Models
+## Baseline Regression Models
 
 - `h2o.glm()`: H2O Generalized Linear Model
 - `h2o.randomForest()`: H2O Random Forest Model
@@ -170,11 +211,12 @@ dim(h_test)
 Let's start with GBM
 
 ```{r}
-model_gbm_DPOL <- h2o.gbm(x = features,               # All 13 features
-                              y = target_DPOL,            # medv (median value of owner-occupied homes in $1000s)
-                              training_frame = h_train,   # H2O dataframe with training data
-                              nfolds = 5,                 # Using 5-fold CV
-                              seed = n_seed)              # Your lucky seed
+# Build a default (baseline) GBM
+model_gbm_DPOL <- h2o.gbm(x = features,                   # All features
+                          y = target_DPOL,            # Target
+                          training_frame = h_train,   # H2O dataframe with training data
+                          nfolds = 5,                 # Using 5-fold CV
+                          seed = n_seed)              # Your lucky seed
 ```
 
 ```{r}
@@ -223,15 +265,16 @@ Build Other Baseline Models (GLM, DRF, GBM, DNN) - TRY IT YOURSELF!
 
 ```{r}
 model_gbm_DPOL_m <- h2o.gbm(x = features, 
-                                y = target_DPOL, 
-                                training_frame = h_train,
-                                nfolds = 5,
-                                seed = n_seed,
-                                # Manual Settings based on experience
-                                learn_rate = 0.1,       # use a lower rate (more conservative)
-                                ntrees = 120,           # use more trees (due to lower learn_rate)
-                                sample_rate = 0.7,      # use random n% of samples for each tree  
-                                col_sample_rate = 0.7)  # use random n% of features for each tree
+                            y = target_DPOL, 
+                            training_frame = h_train,
+                            nfolds = 5,
+                            seed = n_seed,
+                                
+                            # Manual Settings based on experience
+                            learn_rate = 0.1,       # use a lower rate (more conservative)
+                            ntrees = 120,           # use more trees (due to lower learn_rate)
+                            sample_rate = 0.7,      # use random n% of samples for each tree  
+                            col_sample_rate = 0.7)  # use random n% of features for each tree
 ```
 
 ### Comparison (RMSE: Lower = Better)
@@ -252,8 +295,7 @@ d_eval[1, ]$RMSE_test <- h2o.rmse(h2o.performance(model_gbm_DPOL, newdata = h_te
 d_eval[2, ]$RMSE_test <- h2o.rmse(h2o.performance(model_gbm_DPOL_m, newdata = h_test))
 
 # Show Comparison (RMSE: Lower = Better)
-datatable(d_eval, rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE, round)) %>%
-  formatRound(columns = -1, digits = 4)
+kable(d_eval)
 ```
 
 
@@ -268,21 +310,21 @@ automl_DPOL = h2o.automl(x = features,
                          nfolds = 5,                        # 5-fold Cross-Validation
                          max_models = 30,                   # Max number of models
                          stopping_metric = "RMSE",          # Metric to optimize
-                         exclude_algos = c("deeplearning", "xgboost"), # exclude some alogs for a quick demo
+                         exclude_algos = c("deeplearning", "xgboost"), # exclude some algos for a quick demo
                          seed = n_seed)
 ```
 
 ### Leaderboard
 
 ```{r}
-datatable(as.data.frame(automl_DPOL@leaderboard), 
-          rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE, round)) %>%
-  formatRound(columns = -1, digits = 4)
+# Show the table
+kable(as.data.frame(automl_DPOL@leaderboard))
 ```
 
 ### Best Model (Leader)
 
 ```{r}
+# Show the best model
 automl_DPOL@leader
 ```
 
@@ -294,26 +336,28 @@ d_eval_tmp <- data.frame(model = "Best Model from H2O AutoML",
                          RMSE_test = h2o.rmse(h2o.performance(automl_DPOL@leader, newdata = h_test)))
 d_eval <- rbind(d_eval, d_eval_tmp)
 
-datatable(d_eval, rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE, round)) %>%
-  formatRound(columns = -1, digits = 4)
+# Show the table
+kable(d_eval)
 ```
 
 
-
-## Make Predictions
+## Making Predictions
 
 ```{r}
+# Make predictions
 yhat_test <- h2o.predict(automl_DPOL@leader, newdata = h_test)
-head(yhat_test, 5)
+
+# Show the table
+kable(head(yhat_test, 5))
 ```
 
 
-## Explainable AI - Target "DPOL"
+## Explainable AI (Results in Context)
 
 ### Global Explanations
 
 ```{r}
-# Explain Best Model from AutoML
+# Show global explanations for best model from AutoML
 h2o.explain(automl_DPOL@leader, newdata = h_test)
 ```
 
@@ -321,31 +365,81 @@ h2o.explain(automl_DPOL@leader, newdata = h_test)
 ### Local Explanations
 
 ```{r}
+# Show local explanations
 h2o.explain_row(automl_DPOL@leader, newdata = h_test, row_index = 1)
 ```
 
-### Local Contributions (for Tree-based Models)
+### Local Contributions
 
 ```{r}
+# Make Predictions
 predictions <- h2o.predict(automl_DPOL@leader, newdata = h_test)
-as.data.frame(head(predictions, 5))
+
+# Show the table
+kable(head(predictions, 5))
 ```
 
 ```{r}
+# Calculate feature contributions for each sample
 contributions <- h2o.predict_contributions(automl_DPOL@leader, newdata = h_test)
 
-datatable(as.data.frame(head(contributions)), rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE, round)) %>%
-  formatRound(columns = -1, digits = 4)
+# Show the table
+kable(head(contributions, 5))
 ```
 
 
+# Quick Recap
 
-# Your Turn - Target "DBUG"
+<center>
 
-Get your hands dirty!
+![recap_1](img/about_h2o_001.png)
+
+
+![recap_2](img/about_h2o_005.png)
+
+
+
+![why_1](img/why_important_001.png)
+
+
+</center>
+
+## Learning Resources
+
+- H2O Documentation: https://docs.h2o.ai/h2o/latest-stable/h2o-docs/index.html
+- H2O Learning Center: https://training.h2o.ai/
+- Responsible Machine Learning [Link](https://www.h2o.ai/resources/ebook/responsible-machine-learning/)
+- An Introduction to Machine Learning Interpretability [Link](https://www.h2o.ai/resources/ebook/introduction-to-machine-learning-interpretability/)
+
+## Other Use Cases
+
+- Moneyball [Link](https://youtu.be/uZHPhVMtCIc)
+
+<center>
+![mb](img/moneyball.png)
+</center>
+
+- Leveraging explainability in real-world ML applications [Link](https://towardsdatascience.com/leveraging-explainability-in-real-world-ml-applications-part-1-3be567c00594)
+- Practical Explainable AI: Loan Approval Use Case [Link](https://towardsdatascience.com/practical-explainable-ai-loan-approval-use-case-f06d2fba4245)
+- My Numerai AI Hedge Fund Use Case: Presentation [Link](https://www.slideshare.net/0xdata/from-rapid-prototypes-to-an-endtoend-model-deployment-an-ai-hedge-fund-use-case)
+
+
+
+# Your Turn - Get Your Hands Dirty!
+
+- Try to build models for target "DBUG". (Hint: you can change the target and reuse most of the code above.)
+- Instead of using DPOL and DBUG, try using other variables as targets and build predictive models. (Hint: change features and targets)
+- Try your own datasets.
 
 
 # Q & A
 
+## Contact
+
+- jofai.chow@h2o.ai
+- https://twitter.com/matlabulous
+- https://www.linkedin.com/in/jofaichow/
+- https://github.com/woobe
+- https://www.h2o.ai/slack-community/
 
 
